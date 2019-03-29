@@ -1,4 +1,4 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.5.5;
 
 
 import "./c2.sol";

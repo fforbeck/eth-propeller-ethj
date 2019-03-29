@@ -33,28 +33,12 @@ import static org.junit.Assert.*;
  * This code is released under Apache 2 license
  */
 public class TestnetConnectionTest {
-    private final PrivateEthereumFacadeProvider privateNetwork = new PrivateEthereumFacadeProvider();
     /**
      * used by multiThreadTest()
      */
     private boolean somethingDied;
     private EthAccount mainAccount = AccountProvider.fromSeed("cow");
     private EthAddress address;
-
-    public TestnetConnectionTest() {
-    }
-
-    private EthereumFacade fromRopsten() {
-        EthjEthereumFacadeProvider.Builder ethereumProvider = EthjEthereumFacadeProvider.forNetwork(ropsten());
-        ethereumProvider.extendConfig().fastSync(true);
-        return ethereumProvider.create(EthereumConfig.builder().build());
-    }
-
-    private EthereumFacade fromPrivateNetwork() {
-        return privateNetwork.create(config()
-                .reset(true)
-                .initialBalance(mainAccount, ether(10)), EthereumConfig.builder().build());
-    }
 
     private EthereumFacade fromTest() {
         return EthjEthereumFacadeProvider.forTest(TestConfig.builder()
@@ -107,7 +91,6 @@ public class TestnetConnectionTest {
     }
 
     @Test
-    @Ignore
     public void main_example_how_the_lib_works() throws Exception {
         final EthereumFacade ethereum = fromTest();
         MyContract2 myContract = publishAndMapContract(ethereum);
@@ -118,7 +101,6 @@ public class TestnetConnectionTest {
     }
 
     @Test
-    @Ignore
     public void speedAndReliabilityTest() throws Exception {
         final EthereumFacade ethereum = fromTest();
 
@@ -132,7 +114,6 @@ public class TestnetConnectionTest {
     }
 
     @Test
-    @Ignore
     public void multiThreadTest() throws Exception {
         somethingDied = false;
         final EthereumFacade ethereum = fromTest();

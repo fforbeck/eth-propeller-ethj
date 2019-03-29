@@ -2,6 +2,7 @@ package org.adridadou.ethereum.ethj;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.ReplaySubject;
 import org.adridadou.ethereum.propeller.EthereumBackend;
@@ -36,17 +37,17 @@ import java.util.stream.Collectors;
 public class EthereumTest implements EthereumBackend {
     private final StandaloneBlockchain blockchain;
     private final TestConfig testConfig;
-    private final ReplaySubject<Transaction> transactionPublisher = ReplaySubject.create(100);
-    private final Flowable<Transaction> transactionObservable = transactionPublisher.toFlowable(BackpressureStrategy.BUFFER);
+    private final ReplaySubject<Transaction> transactionPublisher = ReplaySubject.create(100000);
+    private final Flowable<Transaction> transactionObservable = transactionPublisher.toFlowable(BackpressureStrategy.ERROR);
     private final LocalExecutionService localExecutionService;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Flowable<Transaction> txProcessorFlow;
 
     private Logger logger = LoggerFactory.getLogger(EthereumTest.class);
 
     public EthereumTest(TestConfig testConfig) {
-        this.blockchain = new StandaloneBlockchain().withNetConfig(getBlockchainConfig());
-
-        blockchain
+        this.blockchain = new StandaloneBlockchain()
+                .withNetConfig(getBlockchainConfig())
                 .withGasLimit(testConfig.getGasLimit())
                 .withGasPrice(testConfig.getGasPrice().getPrice().inWei().longValue())
                 .withCurrentTime(testConfig.getInitialTime());
@@ -54,8 +55,9 @@ public class EthereumTest implements EthereumBackend {
         testConfig.getBalances().forEach((key, value) -> blockchain.withAccountBalance(key.getAddress().address, value.inWei()));
 
         localExecutionService = new LocalExecutionService(blockchain.getBlockchain());
-        processTransactions();
         this.testConfig = testConfig;
+        this.txProcessorFlow = processTransactions();
+        this.txProcessorFlow.subscribe(tx -> executor.submit(() -> process(tx)));
     }
 
     private BlockchainNetConfig getBlockchainConfig() {
@@ -67,18 +69,21 @@ public class EthereumTest implements EthereumBackend {
         }), 0));
     }
 
-    private void processTransactions() {
-        transactionObservable
+    private Flowable<Transaction> processTransactions() {
+        return transactionObservable
+                .onBackpressureDrop()
                 .doOnError(err -> logger.error(err.getMessage(), err))
-                .doOnNext(next -> logger.debug("New transaction to process"))
-                .subscribeOn(Schedulers.from(executor))
-                .subscribe(tx -> executor.submit(() -> process(tx)));
+                .doOnNext(tx -> logger.info("New transaction to process: " + tx.toString()))
+                .doOnComplete(() -> logger.info("Tx processed"))
+                .doOnTerminate(() -> logger.info("Tx Processor terminated"))
+                .observeOn(Schedulers.from(executor));
     }
 
     private void process(Transaction tx) {
         try {
             blockchain.submitTransaction(tx);
             blockchain.createBlock();
+            logger.info("[New block created]");
         } catch (Throwable e) {
             throw new EthereumApiException("error while polling transactions for test env", e);
         }
