@@ -2,7 +2,6 @@ package org.adridadou.ethereum.ethj;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.ReplaySubject;
 import org.adridadou.ethereum.propeller.EthereumBackend;
@@ -47,6 +46,7 @@ public class EthereumTest implements EthereumBackend {
 
     public EthereumTest(TestConfig testConfig) {
         this.blockchain = new StandaloneBlockchain()
+                .withAutoblock(true)
                 .withNetConfig(getBlockchainConfig())
                 .withGasLimit(testConfig.getGasLimit())
                 .withGasPrice(testConfig.getGasPrice().getPrice().inWei().longValue())
@@ -82,8 +82,6 @@ public class EthereumTest implements EthereumBackend {
     private void process(Transaction tx) {
         try {
             blockchain.submitTransaction(tx);
-            blockchain.createBlock();
-            logger.info("[New block created]");
         } catch (Throwable e) {
             throw new EthereumApiException("error while polling transactions for test env", e);
         }

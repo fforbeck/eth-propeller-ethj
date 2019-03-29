@@ -1,6 +1,7 @@
 package org.adridadou.propeller.ethj;
 
 import org.adridadou.ethereum.EthjEthereumFacadeProvider;
+import org.adridadou.ethereum.ethj.EthereumTest;
 import org.adridadou.ethereum.ethj.TestConfig;
 import org.adridadou.ethereum.ethj.privatenetwork.PrivateEthereumFacadeProvider;
 import org.adridadou.ethereum.propeller.EthereumConfig;
@@ -14,6 +15,8 @@ import org.adridadou.ethereum.propeller.values.Payable;
 import org.adridadou.ethereum.propeller.values.SoliditySourceFile;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Date;
@@ -33,6 +36,9 @@ import static org.junit.Assert.*;
  * This code is released under Apache 2 license
  */
 public class TestnetConnectionTest {
+
+    private Logger logger = LoggerFactory.getLogger(TestnetConnectionTest.class);
+
     /**
      * used by multiThreadTest()
      */
@@ -103,11 +109,9 @@ public class TestnetConnectionTest {
     @Test
     public void speedAndReliabilityTest() throws Exception {
         final EthereumFacade ethereum = fromTest();
-
-//        myContract.myMethod("1");
         for (int i = 0; i < 500; i++) {
             MyContract2 myContract = publishAndMapContract(ethereum);
-            //System.out.println("call no:" + i);
+            logger.info("it:" + i);
             testMethodCalls(myContract, address, ethereum);
             assertEquals(mainAccount.getAddress(), myContract.getOwner());
         }
